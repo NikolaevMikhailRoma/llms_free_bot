@@ -1,0 +1,80 @@
+# Telegram OpenRouter LLM Bot
+
+A Telegram bot that integrates with OpenRouter API to access various free language models. Users can select from popular free models and chat with them directly in Telegram.
+
+## Features
+
+1. Access to top 10 free models from OpenRouter
+2. Easy model selection via in-chat buttons (🆓 marks completely free models) 
+3. Chat with selected models through Telegram
+4. Chat history management with reset capability
+5. Model list caching for improved performance
+6. Asynchronous architecture for concurrent user support
+
+## Project Structure
+
+```
+/
+├── main.py                 # Bot entry point
+├── .env                    # API keys configuration
+├── requirements.txt        # Project dependencies
+├── data/                   # Data storage directory
+│   └── models_cache.json   # OpenRouter models cache
+├── src/                    # Source code
+│   ├── api/                # API clients
+│   │   └── openrouter_api.py  # OpenRouter API client
+│   └── bot/                # Bot modules
+│       └── telegram_bot.py    # Telegram bot implementation
+├── test/                   # Test suite
+│   ├── test_openrouter.py  # OpenRouter API tests
+│   └── test_telegram.py    # Telegram Bot API tests
+└── docs/                   # Documentation
+    └── api_documentation.md  # API documentation links
+```
+
+## Setup
+
+1. Install dependencies:
+```
+pip install -r requirements.txt
+```
+
+2. API keys are already configured in the `.env` file:
+- OpenRouter API: ******
+- Telegram Bot Token: ******
+
+## Running
+
+1. Run OpenRouter API tests:
+```
+python test/test_openrouter.py
+```
+
+2. Run Telegram API tests:
+```
+python test/test_telegram.py
+```
+
+3. Start the Telegram bot:
+```
+python main.py
+```
+
+## Bot Usage
+
+1. Find the bot on Telegram by searching for @FreeLLM_chatbot
+2. Send `/start` to begin and get information about the bot
+3. Use `/models` to select a language model (🆓 marks free models)
+4. After selecting a model, simply send messages to chat
+5. Use `/reset` to clear chat history
+6. Use `/help` to view available commands
+
+## API Documentation
+
+The project uses the following APIs:
+- [OpenRouter API](https://openrouter.ai/docs) - For LLM access
+- [Telegram Bot API](https://core.telegram.org/bots/api) - For bot functionality
+
+Access documentation in Cascade using these references:
+- [@docs:openrouter-api](https://openrouter.ai/docs)
+- [@docs:telegram-bot-api](https://core.telegram.org/bots/api)
