@@ -21,15 +21,20 @@ A Telegram bot that integrates with OpenRouter API to access various free langua
 ├── data/                   # Data storage directory
 │   └── models_cache.json   # OpenRouter models cache
 ├── src/                    # Source code
+│   ├── __init__.py         # Package initialization
 │   ├── api/                # API clients
+│   │   ├── __init__.py     # API package initialization
 │   │   └── openrouter_api.py  # OpenRouter API client
-│   └── bot/                # Bot modules
-│       └── telegram_bot.py    # Telegram bot implementation
+│   ├── bot/                # Bot modules
+│   │   ├── __init__.py     # Bot package initialization
+│   │   └── telegram_bot.py    # Telegram bot implementation
+│   └── utils/              # Utility functions
+│       └── __init__.py     # Utils package initialization
 ├── test/                   # Test suite
+│   ├── __init__.py         # Test package initialization
 │   ├── test_openrouter.py  # OpenRouter API tests
 │   └── test_telegram.py    # Telegram Bot API tests
 └── docs/                   # Documentation
-    └── api_documentation.md  # API documentation links
 ```
 
 ## Setup
@@ -39,9 +44,12 @@ A Telegram bot that integrates with OpenRouter API to access various free langua
 pip install -r requirements.txt
 ```
 
-2. API keys are already configured in the `.env` file:
-- OpenRouter API: ******
-- Telegram Bot Token: ******
+2. Add api keys to .env file
+```
+OPENROUTER_API_KEY=<your_api_key>
+TELEGRAM_BOT_TOKEN=<your_bot_token>
+```
+
 
 ## Running
 
