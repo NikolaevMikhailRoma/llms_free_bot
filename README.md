@@ -4,7 +4,7 @@ A Telegram bot that integrates with OpenRouter API to access various free langua
 
 ## Features
 
-1. Access to top 10 free models from OpenRouter
+1. Access to all free models from OpenRouter
 2. Easy model selection via in-chat buttons (🆓 marks completely free models) 
 3. Chat with selected models through Telegram
 4. Chat history management with reset capability
