@@ -68,22 +68,50 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         '/reset - Clear conversation history'
     )
 
-async def display_models(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Display available models for selection."""
-    await update.message.reply_text('Fetching available models...')
+async def display_models(update: Update, context: ContextTypes.DEFAULT_TYPE, page=0) -> None:
+    """Display available models for selection with pagination."""
+    # For callback queries, we need to handle differently
+    is_callback = isinstance(update, Update) and update.callback_query
+    
+    # Get the appropriate message object
+    message = update.callback_query.message if is_callback else update.message
+    
+    if not is_callback:
+        await message.reply_text('Fetching available models...')
     
     try:
-        # Get free models from OpenRouter
+        # Get all free models from OpenRouter
         global openrouter_client
         free_models = await openrouter_client.get_free_models()
         
         if not free_models:
-            await update.message.reply_text('Could not find any free models. Please try again later.')
+            if is_callback:
+                await update.callback_query.answer("No models found")
+                await update.callback_query.edit_message_text('Could not find any free models. Please try again later.')
+            else:
+                await message.reply_text('Could not find any free models. Please try again later.')
             return
+        
+        # Save all models to global storage
+        global model_storage
+        model_storage = {model['id']: model for model in free_models}
+        
+        # Calculate pagination
+        models_per_page = 5
+        total_models = len(free_models)
+        total_pages = (total_models + models_per_page - 1) // models_per_page  # Ceiling division
+        
+        # Ensure page is in valid range
+        page = max(0, min(page, total_pages - 1))
+        
+        # Get models for current page
+        start_idx = page * models_per_page
+        end_idx = min(start_idx + models_per_page, total_models)
+        current_page_models = free_models[start_idx:end_idx]
         
         # Create keyboard with model options
         keyboard = []
-        for i, model in enumerate(free_models):
+        for i, model in enumerate(current_page_models):
             # Add 🆓 emoji for completely free models
             model_name = model['name']
             if model.get("is_free", False):
@@ -93,17 +121,57 @@ async def display_models(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 InlineKeyboardButton(model_name, callback_data=f"model:{model['id']}")
             ])
         
+        # Add navigation buttons
+        nav_buttons = []
+        
+        # Previous page button
+        if page > 0:
+            nav_buttons.append(InlineKeyboardButton("◀️ Prev", callback_data=f"page:{page-1}"))
+        
+        # Page indicator
+        nav_buttons.append(InlineKeyboardButton(f"📄 {page+1}/{total_pages}", callback_data="noop"))
+        
+        # Next page button
+        if page < total_pages - 1:
+            nav_buttons.append(InlineKeyboardButton("Next ▶️", callback_data=f"page:{page+1}"))
+        
+        # Add navigation row
+        keyboard.append(nav_buttons)
+        
         reply_markup = InlineKeyboardMarkup(keyboard)
         
-        # Save models to global storage
-        global model_storage
-        model_storage = {model['id']: model for model in free_models}
+        # Modify text to include page info and total model count
+        select_text = f'Available models ({total_models} total) - Page {page+1}/{total_pages}:\n\nSelect a model to chat with:'
         
-        await update.message.reply_text('Select a model to chat with:', reply_markup=reply_markup)
+        # Edit or send message based on context
+        if is_callback:
+            await update.callback_query.answer()
+            await update.callback_query.edit_message_text(select_text, reply_markup=reply_markup)
+        else:
+            await message.reply_text(select_text, reply_markup=reply_markup)
     
     except Exception as e:
         logger.error(f"Error fetching models: {e}")
-        await update.message.reply_text(f'Error retrieving models: {str(e)}')
+        if is_callback:
+            await update.callback_query.answer("Error loading models")
+            await update.callback_query.edit_message_text(f'Error retrieving models: {str(e)}')
+        else:
+            await message.reply_text(f'Error retrieving models: {str(e)}')
+
+async def page_navigation(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle pagination navigation for model selection."""
+    query = update.callback_query
+    
+    # "noop" callback does nothing 
+    if query.data == "noop":
+        await query.answer("Current page info")
+        return
+    
+    # Extract page number from callback data
+    page = int(query.data.split(':')[1])
+    
+    # Display models for the selected page
+    await display_models(update, context, page=page)
 
 async def model_selection(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle model selection from inline keyboard."""
@@ -205,14 +273,25 @@ async def main() -> None:
     # Create application
     application = Application.builder().token(token).build()
     
+    # Setup bot commands menu
+    from telegram import BotCommand
+    await application.bot.set_my_commands([
+        BotCommand("start", "Start the bot and get a welcome message"),
+        BotCommand("help", "Show usage instructions"),
+        BotCommand("models", "Select a free model for conversation"),
+        BotCommand("reset", "Clear conversation history")
+    ])
+    
     # Command handlers
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("models", display_models))
     application.add_handler(CommandHandler("reset", reset_chat))
     
-    # Callback query handler for model selection
+    # Callback query handlers
     application.add_handler(CallbackQueryHandler(model_selection, pattern=r'^model:'))
+    application.add_handler(CallbackQueryHandler(page_navigation, pattern=r'^page:'))
+    application.add_handler(CallbackQueryHandler(page_navigation, pattern=r'^noop$'))
     
     # Message handler
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))

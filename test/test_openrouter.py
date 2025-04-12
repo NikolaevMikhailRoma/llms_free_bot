@@ -8,147 +8,147 @@ import json
 from dotenv import load_dotenv
 import asyncio
 
-# Добавляем корневой каталог проекта в sys.path
+# Add the project root directory to sys.path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-# Импортируем клиент OpenRouter
+# Import OpenRouter client
 from src.api.openrouter_api import OpenRouterClient
 
-# Загружаем переменные окружения
+# Load environment variables
 load_dotenv()
 
-# Используем IsolatedAsyncioTestCase для асинхронных тестов
+# Use IsolatedAsyncioTestCase for asynchronous tests
 class TestOpenRouterAPI(unittest.IsolatedAsyncioTestCase):
-    """Тесты для API OpenRouter"""
+    """Tests for OpenRouter API"""
     
     def setUp(self):
-        """Настройка окружения для тестов"""
+        """Set up environment for tests"""
         self.client = OpenRouterClient()
-        # Проверяем, доступен ли API ключ
+        # Check if API key is available
         self.api_key_available = bool(os.getenv("OPENROUTER_API_KEY"))
         
-        # Выводим информацию о документации
+        # Display documentation information
         self.print_documentation_info()
     
     async def asyncTearDown(self):
-        """Закрываем сессию клиента после каждого теста"""
+        """Close client session after each test"""
         if self.client:
             await self.client.close()
 
     def print_documentation_info(self):
-        """Выводит информацию о доступе к документации"""
-        print("\n=== Проверка документации ===")
-        print("Документация OpenRouter API [@docs:openrouter-api]: https://openrouter.ai/docs")
-        print("Документация Telegram Bot API [@docs:telegram-bot-api]: https://core.telegram.org/bots/api")
+        """Displays information about documentation access"""
+        print("\n=== Documentation Check ===")
+        print("OpenRouter API Documentation [@docs:openrouter-api]: https://openrouter.ai/docs")
+        print("Telegram Bot API Documentation [@docs:telegram-bot-api]: https://core.telegram.org/bots/api")
         print("================================\n")
     
     async def test_api_key_loaded(self):
-        """Тест на загрузку API ключа из .env файла"""
-        print("Тест: Проверка наличия API ключа OpenRouter")
-        self.assertTrue(self.api_key_available, "API ключ должен быть доступен из .env файла")
+        """Test for loading API key from .env file"""
+        print("Test: Checking for OpenRouter API key presence")
+        self.assertTrue(self.api_key_available, "API key should be available from .env file")
         api_key = os.getenv("OPENROUTER_API_KEY")
-        self.assertIsNotNone(api_key, "API ключ должен быть загружен")
-        self.assertTrue(api_key.startswith("sk-or-"), "API ключ должен иметь формат 'sk-or-*'")
-        print(f"✓ API ключ OpenRouter успешно загружен: {api_key[:10]}...")
+        self.assertIsNotNone(api_key, "API key should be loaded")
+        self.assertTrue(api_key.startswith("sk-or-"), "API key should have the format 'sk-or-*'")
+        print(f"✓ OpenRouter API key successfully loaded: {api_key[:10]}...")
     
     async def test_get_available_models(self):
-        """Тест на получение доступных моделей"""
+        """Test for getting available models"""
         if not self.api_key_available:
-            self.skipTest("Пропуск теста, так как API ключ недоступен")
+            self.skipTest("Skipping test as API key is unavailable")
         
-        print("Тест: Получение списка всех моделей")
-        # Используем await вместо asyncio.run()
+        print("Test: Getting a list of all models")
+        # Using await instead of asyncio.run()
         models = await self.client.get_available_models(use_cache=False)
-        self.assertIsInstance(models, list, "get_available_models должен возвращать список")
-        self.assertGreater(len(models), 0, "Должна быть хотя бы одна модель")
+        self.assertIsInstance(models, list, "get_available_models should return a list")
+        self.assertGreater(len(models), 0, "There should be at least one model")
         
-        # Проверка формата данных модели
+        # Check the model data format
         model = models[0]
         required_fields = ["id", "name"]
         for field in required_fields:
-            self.assertIn(field, model, f"Модель должна содержать поле '{field}'")
+            self.assertIn(field, model, f"Model should contain the field '{field}'")
         
-        print(f"✓ Получено {len(models)} моделей")
-        print(f"Пример модели: {model['name']} ({model['id']})")
+        print(f"✓ Received {len(models)} models")
+        print(f"Sample model: {model['name']} ({model['id']})")
     
     async def test_get_free_models(self):
-        """Тест на получение бесплатных моделей"""
+        """Test for getting free models"""
         if not self.api_key_available:
-            self.skipTest("Пропуск теста, так как API ключ недоступен")
+            self.skipTest("Skipping test as API key is unavailable")
         
-        print("Тест: Получение списка бесплатных моделей")
-        # Используем await вместо asyncio.run()
+        print("Test: Getting list of free models")
+        # Using await instead of asyncio.run()
         free_models = await self.client.get_free_models(limit=10)
-        self.assertIsInstance(free_models, list, "get_free_models должен возвращать список")
+        self.assertIsInstance(free_models, list, "get_free_models should return a list")
         
-        print(f"✓ Получено {len(free_models)} бесплатных моделей")
+        print(f"✓ Received {len(free_models)} free models")
         
-        # Проверяем, что в списке есть модели с "free" в названии
+        # Check that the list contains models with "free" in their name
         free_in_name_count = sum(1 for model in free_models if model.get("is_free", False))
-        print(f"✓ Моделей с 'free' в названии: {free_in_name_count}")
+        print(f"✓ Models with 'free' in the name: {free_in_name_count}")
         
-        # Выводим список бесплатных моделей
-        print("\nСписок бесплатных моделей:")
+        # Display list of free models
+        print("\nList of free models:")
         for i, model in enumerate(free_models, 1):
             is_free = "🆓" if model.get("is_free", False) else "  "
             print(f"{i}. {is_free} {model['name']} ({model['id']})")
     
     async def test_generate_response(self):
-        """Тест на генерацию ответа от модели"""
+        """Test for generating response from a model"""
         if not self.api_key_available:
-            self.skipTest("Пропуск теста, так как API ключ недоступен")
+            self.skipTest("Skipping test as API key is unavailable")
         
-        print("Тест: Генерация ответа от модели")
+        print("Test: Generating a response from a model")
         
-        # Получаем бесплатные модели (асинхронно с await)
+        # Get free models (asynchronously with await)
         free_models = await self.client.get_free_models(limit=1)
         if not free_models:
-            self.skipTest("Пропуск теста, так как нет доступных бесплатных моделей")
+            self.skipTest("Skipping test as no free models are available")
         
         model = free_models[0]
-        print(f"✓ Используем модель: {model['name']} ({model['id']})")
+        print(f"✓ Using model: {model['name']} ({model['id']})")
         
-        # Генерируем ответ (асинхронно с await)
-        prompt = "Расскажи о себе в одном предложении как ИИ-ассистент."
-        print(f"✓ Отправляем запрос: '{prompt}'")
+        # Generate response (asynchronously with await)
+        prompt = "Tell me about yourself in one sentence as an AI assistant."
+        print(f"✓ Sending request: '{prompt}'")
         
         response = await self.client.generate_response(model['id'], prompt)
         
-        self.assertIsInstance(response, str, "Ответ должен быть строкой")
-        self.assertGreater(len(response), 0, "Ответ не должен быть пустым")
+        self.assertIsInstance(response, str, "Response should be a string")
+        self.assertGreater(len(response), 0, "Response should not be empty")
         
-        print(f"✓ Получен ответ длиной {len(response)} символов")
-        print(f"Ответ: {response[:100]}...")
+        print(f"✓ Received response of {len(response)} characters")
+        print(f"Response: {response[:100]}...")
     
     async def test_models_cache(self):
-        """Тест на кэширование моделей"""
+        """Test for model caching"""
         if not self.api_key_available:
-            self.skipTest("Пропуск теста, так как API ключ недоступен")
+            self.skipTest("Skipping test as API key is unavailable")
         
-        print("Тест: Кэширование моделей")
+        print("Test: Model caching")
         
         cache_file = self.client.models_cache_file
-        # Удаляем кэш, если он существует
+        # Delete cache if it exists
         if os.path.exists(cache_file):
             os.remove(cache_file)
         
-        # Получаем модели (должен создаться кэш) - асинхронно с await
+        # Get models (should create cache) - asynchronously with await
         models = await self.client.get_available_models(use_cache=False)
         
-        # Проверяем, что кэш создан
-        self.assertTrue(os.path.exists(cache_file), "Кэш-файл должен быть создан")
+        # Check that the cache was created
+        self.assertTrue(os.path.exists(cache_file), "Cache file should be created")
         
-        # Загружаем кэш и проверяем его содержимое
+        # Load cache and check its contents
         with open(cache_file, 'r') as f:
             cached_models = json.load(f)
         
-        self.assertEqual(len(cached_models), len(models), "Количество моделей в кэше должно соответствовать полученному")
-        print(f"✓ Кэш успешно создан с {len(cached_models)} моделями")
+        self.assertEqual(len(cached_models), len(models), "Number of models in cache should match the received ones")
+        print(f"✓ Cache successfully created with {len(cached_models)} models")
         
-        # Проверяем, что при следующем вызове используется кэш - асинхронно с await
+        # Check that cache is used on next call - asynchronously with await
         cached_models_result = await self.client.get_available_models(use_cache=True)
-        self.assertEqual(len(cached_models_result), len(models), "Количество моделей из кэша должно соответствовать оригинальному")
-        print("✓ Кэш успешно используется при повторном запросе")
+        self.assertEqual(len(cached_models_result), len(models), "Number of models from cache should match the original")
+        print("✓ Cache successfully used for repeat requests")
 
 
 if __name__ == "__main__":

@@ -103,43 +103,40 @@ class OpenRouterClient:
         with open(self.models_cache_file, 'w') as f:
             json.dump(models_data, f, indent=2)
     
-    async def get_free_models(self, limit=10) -> List[Dict[str, Any]]:
-        """Get free or low-cost models from OpenRouter.
+    async def get_free_models(self, limit=None) -> List[Dict[str, Any]]:
+        """Get only truly free models from OpenRouter.
         
         Args:
-            limit: Maximum number of models to return
+            limit: Maximum number of models to return, None for all models
             
         Returns:
-            List of free model information dictionaries, sorted by preference
+            List of completely free model information dictionaries, sorted by preference
         """
         models_data = await self.get_available_models()
         
-        # Filter free models
+        # Filter only completely free models
         free_models = []
         for model in models_data:
-            # Check pricing information
-            pricing = model.get("pricing", {})
-            prompt_price = float(pricing.get("prompt", 0) or 0)
-            completion_price = float(pricing.get("completion", 0) or 0)
-            
             # Check if name or ID contains "free"
             is_free_in_name = "free" in model.get("id", "").lower() or "free" in model.get("name", "").lower()
             
-            # Consider model free if marked as free or has very low cost
-            if is_free_in_name or (prompt_price <= 0.0001 and completion_price <= 0.0001):
+            # Only include models that are explicitly marked as free
+            if is_free_in_name:
                 free_models.append({
                     "id": model.get("id"),
                     "name": model.get("name"),
                     "description": model.get("description", ""),
                     "context_length": model.get("context_length", 4096),
-                    "is_free": is_free_in_name
+                    "is_free": True
                 })
         
-        # Sort by free marker and context length
-        free_models.sort(key=lambda x: (-x["is_free"], -x["context_length"]))
+        # Sort by context length (larger first)
+        free_models.sort(key=lambda x: -x["context_length"])
         
-        # Return top N models
-        return free_models[:limit]
+        # Return models with optional limit
+        if limit is not None and limit > 0:
+            return free_models[:limit]
+        return free_models
     
     async def generate_response(self, model_id: str, prompt: str, chat_history: Optional[List[Dict[str, str]]] = None) -> str:
         """Generate a response from a specified model.
