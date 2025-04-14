@@ -43,8 +43,12 @@ A Telegram bot that integrates with OpenRouter API to access various free langua
 ```
 pip install -r requirements.txt
 ```
-
-2. Add api keys to .env file
+2. (optional) Install the virtual environment
+2.1 Create environment
+```
+python -m venv .venv
+```
+3. Add api keys to .env file (create a new private file: .env)
 ```
 OPENROUTER_API_KEY=<your_api_key>
 TELEGRAM_BOT_TOKEN=<your_bot_token>
@@ -53,6 +57,16 @@ TELEGRAM_BOT_TOKEN=<your_bot_token>
 
 ## Running
 
+0. Activate virtual .venv
+
+0.a (linux/mac)
+```
+source .venv/bin/activate
+```
+0.b (windows)
+```
+source .venv/Scripts/activate
+```
 1. Run OpenRouter API tests:
 ```
 python test/test_openrouter.py
